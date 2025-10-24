@@ -10,5 +10,5 @@ output "security_group_id" {
 
 output "vpc_id" {
   description = "The VPC Id"
-  value       = aws_vpc.this.id
+  value       = aws_vpc.demo-vpc.id
 }
