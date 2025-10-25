@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: producer
-          image: your-dockerhub-username/producer:latest
+          image: himatejaawsdevops/producer:latest
           ports:
             - containerPort: 8080
           env:
@@ -23,3 +23,4 @@ spec:
               value: "amqp://rabbitmq.messaging.svc.cluster.local:5672"
             - name: QUEUE_NAME
               value: "task_queue"
+
