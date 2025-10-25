@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: consumer
-          image: himatejaawsdevops/consumer:latest
+          image: himatejaawsdevops/consumer:v17
           ports:
             - containerPort: 8080
           env:

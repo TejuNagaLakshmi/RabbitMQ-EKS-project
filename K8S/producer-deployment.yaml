@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: producer
-          image: himatejaawsdevops/producer:latest
+          image: himatejaawsdevops/producer:v17
           ports:
             - containerPort: 8080
           env:
