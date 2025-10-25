@@ -19,8 +19,13 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: RABBITMQ_USER
+              value: "user"
+            - name: RABBITMQ_PASSWORD
+              value: "password"
             - name: RABBITMQ_URL
               value: "amqp://rabbitmq.messaging.svc.cluster.local:5672"
             - name: QUEUE_NAME
               value: "task_queue"
+
 
