@@ -1,0 +1,86 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_USERNAME = 'himatejaawsdevops'
+        DOCKER_CRED = 'DOCKER_CRED'
+        GIT_CRED = 'GIT_CRED'
+        IMAGE_TAG = "v${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/TejuNagaLakshmi/RabbitMQ-EKS-project.git',
+                        credentialsId: "${GIT_CRED}"
+                    ]]
+                ])
+            }
+        }
+
+        stage('Build and Push Docker Images') {
+            parallel {
+                stage('Producer') {
+                    steps {
+                        script {
+                            def producerImage = docker.build("${DOCKER_USERNAME}/producer:${IMAGE_TAG}", "Producer/")
+                            docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CRED}") {
+                                producerImage.push()
+                            }
+                        }
+                    }
+                }
+                stage('Consumer') {
+                    steps {
+                        script {
+                            def consumerImage = docker.build("${DOCKER_USERNAME}/consumer:${IMAGE_TAG}", "consumer/")
+                            docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_CRED}") {
+                                consumerImage.push()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Update Kubernetes Manifests') {
+            steps {
+                script {
+                    sh """
+                    sed -i 's|image: ${DOCKER_USERNAME}/producer:.*|image: ${DOCKER_USERNAME}/producer:${IMAGE_TAG}|' K8S/producer-deployment.yaml
+                    sed -i 's|image: ${DOCKER_USERNAME}/consumer:.*|image: ${DOCKER_USERNAME}/consumer:${IMAGE_TAG}|' K8S/consumer-deployment.yaml
+                    """
+                }
+            }
+        }
+
+        stage('Commit and Push Changes') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "GIT_CRED", usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                    script {
+                        sh """
+                        git config user.name "jenkins"
+                        git config user.email "jenkins@local"
+                        git add K8S/*.yaml
+                        git commit -m "Update image tags to ${IMAGE_TAG}" || echo "No changes to commit"
+                        git push https://$GIT_USER:$GIT_PASS@github.com/TejuNagaLakshmi/RabbitMQ-EKS-project.git HEAD:main
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Images pushed and manifests updated successfully. ArgoCD will deploy the new version."
+        }
+        failure {
+            echo "Build or deployment failed. Check the Jenkins logs for details."
+        }
+    }
+}
